@@ -1,0 +1,8 @@
+data*
+out-examples
+aggregated-*
+
+# excel lockfiles
+~$*
+
+.DS_Store
