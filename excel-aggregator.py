@@ -3,18 +3,19 @@
 import os
 from pathlib import Path
 import pandas as pd
-from openpyxl import load_workbook
-import xlrd
+import csv
 from dataclasses import dataclass
 from typing import List, Tuple, Callable, Optional, Any
 from datetime import datetime
+
+from excel_to_csv import excel_to_csv
 
 @dataclass
 class Location:
 	x: int
 	y: int
 	value: Any
-	sheet: Any
+	sheet: List[List[str]]
 	prefix: str = ""
 	suffix: str = ""
 
@@ -36,15 +37,17 @@ class Location:
 	def goBelowUntilPrefix(self, prefix):
 		return self._moveUntil(0, 1, lambda val: str(val).startswith(prefix))
 
+	# move until a value is reached, while within bounds
 	def _move(self, dx, dy):
 		new_x, new_y = self.x, self.y
 		while True:
 			new_x += dx
 			new_y += dy
-			value = self._get_cell_value(new_x, new_y)
-			if value is None:  # reached the end of the sheet
+			if not self._within_bounds(new_x, new_y):
 				return None
-			if value != "":  # found a non-empty cell
+
+			value = self._get_cell_value(new_x, new_y)
+			if value != "":
 				return Location(new_x, new_y, value, self.sheet)
 
 	def _moveUntil(self, dx, dy, condition):
@@ -57,14 +60,14 @@ class Location:
 				return current
 
 	def _get_cell_value(self, x, y):
-		if isinstance(self.sheet, xlrd.sheet.Sheet):
-			if x > self.sheet.ncols or y > self.sheet.nrows:
-				return None
-			return self.sheet.cell_value(y-1, x-1)
-		else:  # assume openpyxl sheet
-			if x > self.sheet.max_column or y > self.sheet.max_row:
-				return None
-			return self.sheet.cell(row=y, column=x).value
+		if self._within_bounds(x, y):
+			return self.sheet[y][x]
+		return None
+
+	def _within_bounds(self, x, y):
+		if 0 <= y < len(self.sheet) and 0 <= x < len(self.sheet[y]):
+			return True
+		return False
 
 class Finder:
 	def __init__(self, find_func):
@@ -107,42 +110,38 @@ class Finder:
 
 def findExact(value: str):
 	def finder(sheet):
-		for y, row in enumerate(sheet.get_rows(), start=1):
-			for x, cell in enumerate(row, start=1):
-				if cell.value == value:
-					return Location(x, y, cell.value, sheet)
+		for y, row in enumerate(sheet):
+			for x, cell in enumerate(row):
+				if cell == value:
+					return Location(x, y, cell, sheet)
 		return None
 	return Finder(finder)
 
 def findPrefix(prefix: str):
 	def finder(sheet):
-		for y, row in enumerate(sheet.get_rows(), start=1):
-			for x, cell in enumerate(row, start=1):
-				if isinstance(cell.value, str) and cell.value.startswith(prefix):
-					suffix = cell.value[len(prefix):]
-					return Location(x, y, cell.value, sheet, prefix=prefix, suffix=suffix)
+		for y, row in enumerate(sheet):
+			for x, cell in enumerate(row):
+				if isinstance(cell, str) and cell.startswith(prefix):
+					suffix = cell[len(prefix):]
+					return Location(x, y, cell, sheet, prefix=prefix, suffix=suffix)
 		return None
 	return Finder(finder)
 
-def aggregate_excel_data(folder_path: str, parse_columns: List[Tuple[str, Callable]]):
+def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable]]):
 	all_data = []
 	folder_name = os.path.basename(os.path.normpath(folder_path))
 	timestamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 	outdir = "out"
 	Path(outdir).mkdir(parents=True, exist_ok=True)
-	output_file_excel = os.path.join(outdir, f"aggregated-{folder_name}-{timestamp}.xlsx")
-	# output_file_csv = f"aggregated-{folder_name}-{timestamp}.csv"
+	output_file_csv = os.path.join(outdir, f"aggregated-{folder_name}-{timestamp}.csv")
 
 	for filename in os.listdir(folder_path):
-		if filename.endswith('.xlsx') or filename.endswith('.xls'):
+		if filename.endswith('.csv'):
 			file_path = os.path.join(folder_path, filename)
 			
-			if filename.endswith('.xlsx'):
-				workbook = load_workbook(filename=file_path, data_only=True)
-				sheet = workbook.active
-			else:  # .xls file
-				workbook = xlrd.open_workbook(file_path)
-				sheet = workbook.sheet_by_index(0)
+			with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+				reader = csv.reader(csvfile)
+				sheet = list(reader)
 
 			row_data = {'Filename': filename}
 			for column_name, value_fn in parse_columns:
@@ -153,10 +152,8 @@ def aggregate_excel_data(folder_path: str, parse_columns: List[Tuple[str, Callab
 			all_data.append(row_data)
 
 	df = pd.DataFrame(all_data)
-	df.to_excel(output_file_excel, index=False)
-	print(f"Data aggregated and saved to {output_file_excel}")
-	# df.to_csv(output_file_csv, index=False)
-	# print(f"Data aggregated and saved to {output_file_csv}")
+	df.to_csv(output_file_csv, index=False)
+	print(f"Data aggregated and saved to {output_file_csv}")
 
 def main():
 	parse_columns = [
@@ -168,9 +165,12 @@ def main():
 		("KAINA BE PVM", findExact("Bendros sumos EUR").goBelowUntilExact("Suma be PVM / total amount:").goRight()),
 	]
 
-	folder_path = input("Enter the folder path containing Excel files: ")
+	excel_inputdir = input("Enter the folder path containing excel files: ")
+	excel_inputdir_name = os.path.basename(excel_inputdir)
+	csv_outdir = os.path.join(excel_inputdir, f"csv-{excel_inputdir_name}")
 	print("")
-	aggregate_excel_data(folder_path, parse_columns)
+	excel_to_csv(excel_inputdir, csv_outdir)
+	aggregate_csv_data(csv_outdir, parse_columns)
 
 if __name__ == "__main__":
 	main()
