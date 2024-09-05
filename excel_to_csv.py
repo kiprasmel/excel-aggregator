@@ -63,6 +63,12 @@ def file_ext(filepath):
 	_, ext = os.path.splitext(filepath)
 	return ext.lower()
 
+def is_tmp_file(filepath):
+	filename = os.path.basename(filepath)
+	if filename.startswith("~$"):
+		return True
+	return False
+
 def UnknownFilext(ext):
 	return ValueError(f"Unsupported file format: {ext}")
 
@@ -72,7 +78,7 @@ def excel_to_csv(input_dir, output_dir):
 		os.makedirs(output_dir)
 	
 	for filename in os.listdir(input_dir):
-		if filename.endswith(('.xlsx', '.xls')):
+		if filename.endswith(('.xlsx', '.xls')) and not is_tmp_file(filename):
 			filepath = os.path.join(input_dir, filename)
 			process_excel_file(filepath, output_dir)
 
