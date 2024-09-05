@@ -7,13 +7,32 @@ def process_xlsx_sheet(sheet, output_path):
 	with open(output_path, 'w', newline='', encoding='utf-8') as csv_file:
 		csv_writer = csv.writer(csv_file)
 		for row in sheet.iter_rows(values_only=True):
-			csv_writer.writerow(row)
+			values = prep_row_values(row)
+			csv_writer.writerow(values)
 
 def process_xls_sheet(sheet, output_path):
 	with open(output_path, 'w', newline='', encoding='utf-8') as csv_file:
 		csv_writer = csv.writer(csv_file)
 		for row_idx in range(sheet.nrows):
-			csv_writer.writerow(sheet.row_values(row_idx))
+			values = prep_row_values(sheet.row_values(row_idx))
+			csv_writer.writerow(values)
+
+def prep_row_values(row):
+	return [prep_row_value(x) for x in row]
+
+def prep_row_value(x):
+	if isinstance(x, str):
+		return x.strip()
+
+	if isinstance(x, float):
+		return round(x, 2)
+	
+	if isinstance(x, int):
+		return x
+	
+	assert x == None, f"unhandled value '{x}'."
+	return x
+
 
 def process_excel_file(filepath, outdir):
 	filext = file_ext(filepath)
