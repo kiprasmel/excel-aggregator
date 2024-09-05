@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import math
 from pathlib import Path
 import pandas as pd
 import csv
@@ -31,16 +32,23 @@ class Location:
 	def goRightUntilPrefix(self, prefix):
 		return self._moveUntil(1, 0, lambda val: str(val).startswith(prefix))
 
+	def goRightUntilLastContinuousValue(self):
+		return self._moveUntilLastContinuousValue(1, 0)
+
 	def goBelowUntilExact(self, target):
 		return self._moveUntil(0, 1, lambda val: val == target)
 
 	def goBelowUntilPrefix(self, prefix):
 		return self._moveUntil(0, 1, lambda val: str(val).startswith(prefix))
 
+	def goBelowUntilLastContinuousValue(self):
+		return self._moveUntilLastContinuousValue(0, 1)
+
 	# move until a value is reached, while within bounds
-	def _move(self, dx, dy):
+	def _move(self, dx, dy, moves=math.inf):
 		new_x, new_y = self.x, self.y
-		while True:
+		while moves > 0:
+			moves -= 1
 			new_x += dx
 			new_y += dy
 			if not self._within_bounds(new_x, new_y):
@@ -49,6 +57,8 @@ class Location:
 			value = self._get_cell_value(new_x, new_y)
 			if value != "":
 				return Location(new_x, new_y, value, self.sheet)
+		
+		return None
 
 	def _moveUntil(self, dx, dy, condition):
 		current = self
@@ -58,6 +68,16 @@ class Location:
 				return None
 			if condition(current.value):
 				return current
+
+	def _moveUntilLastContinuousValue(self, dx, dy):
+		current = self
+		while True:
+			nxt = current._move(dx, dy, moves=1)
+			if not nxt:
+				return current
+			if nxt.value == "":
+				return current
+			current = nxt
 
 	def _get_cell_value(self, x, y):
 		if self._within_bounds(x, y):
@@ -85,11 +105,17 @@ class Finder:
 	def goRightUntilPrefix(self, prefix):
 		return self._chain(lambda loc: loc.goRightUntilPrefix(prefix))
 
+	def goBelowUntilLastContinuousValue(self):
+		return self._chain(lambda loc: loc.goBelowUntilLastContinuousValue())
+
 	def goBelowUntilExact(self, value):
 		return self._chain(lambda loc: loc.goBelowUntilExact(value))
 
 	def goBelowUntilPrefix(self, prefix):
 		return self._chain(lambda loc: loc.goBelowUntilPrefix(prefix))
+
+	def goRightUntilLastContinuousValue(self):
+		return self._chain(lambda loc: loc.goRightUntilLastContinuousValue())
 
 	def getSuffix(self):
 		return self._chain(lambda loc: Location(loc.x, loc.y, loc.suffix, loc.sheet))
@@ -155,16 +181,33 @@ def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable
 	df.to_csv(output_file_csv, index=False)
 	print(f"Data aggregated and saved to {output_file_csv}")
 
-def main():
-	parse_columns = [
-		("SF NUMERIS", findPrefix("PVM SĄSKAITA FAKTŪRA (VAT INVOICE)").modify(lambda x: x.split(" ")[-1])),
-		("DATA", findPrefix("Išrašymo data / Date:").getSuffix()),
-		("KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("Įmones kodas:").getSuffix()),
-		("PVM KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("PVM kodas:").getSuffix()),
-		("VARDAS PAVARDĖ/ĮM. PAVADINIMAS", findExact("Pirkėjas / Buyer").goBelow()),
-		("KAINA BE PVM", findExact("Bendros sumos EUR").goBelowUntilExact("Suma be PVM / total amount:").goRight()),
-	]
+PMV_AMOUNT = 1.21
 
+def remove_pvm(value):
+	divided = float(value) / PMV_AMOUNT
+	rounded = round(divided, 2)
+	return rounded
+
+parse_columns_data1 = [
+	("SF NUMERIS", findPrefix("PVM SĄSKAITA FAKTŪRA (VAT INVOICE)").modify(lambda x: x.split(" ")[-1])),
+	("DATA", findPrefix("Išrašymo data / Date:").getSuffix()),
+	("KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("Įmones kodas:").getSuffix()),
+	("PVM KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("PVM kodas:").getSuffix()),
+	("VARDAS PAVARDĖ/ĮM. PAVADINIMAS", findExact("Pirkėjas / Buyer").goBelow()),
+	("KAINA BE PVM", findExact("Bendros sumos EUR").goBelowUntilExact("Suma be PVM / total amount:").goRight()),
+]
+
+parse_columns_data2 = [
+	("SERIJA", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[1])),
+	("NR", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[-1])),
+	("DATA", findPrefix("Serija ").goBelow().modify(lambda x: x.strip())),
+	("KAINA BE PVM", findExact("Suma Eur").goBelowUntilLastContinuousValue().modify(remove_pvm)),
+]
+
+# select which parser to use
+parse_columns = parse_columns_data2
+
+def main():
 	excel_inputdir = input("Enter the folder path containing excel files: ")
 	excel_inputdir_name = os.path.basename(excel_inputdir)
 	csv_outdir = os.path.join(excel_inputdir, f"csv-{excel_inputdir_name}")
