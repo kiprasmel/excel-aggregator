@@ -224,7 +224,8 @@ parse_columns_data2 = [
 	("SERIJA", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[1])),
 	("NR", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[-1])),
 	("DATA", findPrefix("Serija ").goBelowUntilValue().modify(lambda x: x.strip())),
-	("KODAS", findExact("Pirkėjas:").move(RIGHT, 1).goBelowUntilExact("(pavadinimas)").move(UP, 1)),
+	("PIRKEJAS", findExact("Pirkėjas:").move(RIGHT, 1).goBelowUntilExact("(pavadinimas)").move(UP, 1)),
+	("KODAS", findExact("Pirkėjas:").move(RIGHT, 1).goBelowUntilExact("(pirkėjo kodas)").move(UP, 1)),
 	("PVM KODAS", findExact("Pirkėjas:").move(RIGHT, 1).goBelowUntilExact("(PVM mokėtojo kodas)").move(UP, 1)),
 	("KAINA BE PVM", findExact("Suma Eur").goBelowUntilLastContinuousValue().modify(remove_pvm)),
 ]
