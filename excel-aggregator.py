@@ -231,9 +231,10 @@ parse_columns_data2 = [
 
 # select which parser to use
 parse_columns = parse_columns_data2
+excel_inputdir = "NS24 2024 08"
 
 def main():
-	excel_inputdir = input("Enter the folder path containing excel files: ")
+	# excel_inputdir = input("Enter the folder path containing excel files: ")
 	excel_inputdir_name = os.path.basename(excel_inputdir)
 	csv_outdir = os.path.join(excel_inputdir, f"csv-{excel_inputdir_name}")
 	print("")
