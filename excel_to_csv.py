@@ -25,7 +25,10 @@ def prep_row_value(x):
 		return x.strip()
 
 	if isinstance(x, float):
-		return round(x, 2)
+		if str(x).endswith(".0"):
+			return int(x)
+		else:
+			return round(x, 2)
 	
 	if isinstance(x, int):
 		return x
