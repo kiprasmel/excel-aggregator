@@ -112,14 +112,14 @@ class Finder:
 	def __init__(self, find_func):
 		self.find_func = find_func
 
-	def move(self, delta, moves=1):
+	def move(self, delta, moves):
 		(dx, dy) = delta
 		return self._chain(lambda loc: loc.move(dx, dy, moves))
 
-	def goRight(self):
+	def goRightUntilValue(self):
 		return self._chain(lambda loc: loc.goRight())
 
-	def goBelow(self):
+	def goBelowUntilValue(self):
 		return self._chain(lambda loc: loc.goBelow())
 
 	def goRightUntilExact(self, value):
@@ -216,16 +216,16 @@ parse_columns_data1 = [
 	("DATA", findPrefix("Išrašymo data / Date:").getSuffix()),
 	("KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("Įmones kodas:").getSuffix()),
 	("PVM KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("PVM kodas:").getSuffix()),
-	("VARDAS PAVARDĖ/ĮM. PAVADINIMAS", findExact("Pirkėjas / Buyer").goBelow()),
-	("KAINA BE PVM", findExact("Bendros sumos EUR").goBelowUntilExact("Suma be PVM / total amount:").goRight()),
+	("VARDAS PAVARDĖ/ĮM. PAVADINIMAS", findExact("Pirkėjas / Buyer").goBelowUntilValue()),
+	("KAINA BE PVM", findExact("Bendros sumos EUR").goBelowUntilExact("Suma be PVM / total amount:").goRightUntilValue()),
 ]
 
 parse_columns_data2 = [
 	("SERIJA", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[1])),
 	("NR", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[-1])),
-	("DATA", findPrefix("Serija ").goBelow().modify(lambda x: x.strip())),
-	("KODAS", findExact("Pirkėjas:").move(RIGHT).goBelowUntilExact("(pavadinimas)").move(UP)),
-	("PVM KODAS", findExact("Pirkėjas:").move(RIGHT).goBelowUntilExact("(PVM mokėtojo kodas)").move(UP)),
+	("DATA", findPrefix("Serija ").goBelowUntilValue().modify(lambda x: x.strip())),
+	("KODAS", findExact("Pirkėjas:").move(RIGHT, 1).goBelowUntilExact("(pavadinimas)").move(UP, 1)),
+	("PVM KODAS", findExact("Pirkėjas:").move(RIGHT, 1).goBelowUntilExact("(PVM mokėtojo kodas)").move(UP, 1)),
 	("KAINA BE PVM", findExact("Suma Eur").goBelowUntilLastContinuousValue().modify(remove_pvm)),
 ]
 
