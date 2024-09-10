@@ -6,4 +6,3 @@
 - [ ] use CSVs instead of excel? had some bugs e.g. formula not being evaluated in full (e.g. division), thus giving incorrect data
 
 - [ ] goBelow, goRight -> suffix with "untilValue"
-- [ ] for `move`s, instead of dx, dy, take in dir=(dx, dy), have preconfigured directions UP, RIGHT, DOWN, LEFT

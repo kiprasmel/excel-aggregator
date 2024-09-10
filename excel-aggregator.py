@@ -101,11 +101,19 @@ class Location:
 			return True
 		return False
 
+# move deltas
+# POS = (dx, dy)
+DOWN  = (0, 1)
+RIGHT = (1, 0)
+LEFT  = (-1, 0)
+UP    = (0, -1)
+
 class Finder:
 	def __init__(self, find_func):
 		self.find_func = find_func
 
-	def move(self, dx, dy, moves):
+	def move(self, delta, moves=1):
+		(dx, dy) = delta
 		return self._chain(lambda loc: loc.move(dx, dy, moves))
 
 	def goRight(self):
@@ -216,8 +224,8 @@ parse_columns_data2 = [
 	("SERIJA", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[1])),
 	("NR", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[-1])),
 	("DATA", findPrefix("Serija ").goBelow().modify(lambda x: x.strip())),
-	("KODAS", findExact("Pirkėjas:").move(1, 0, 1).goBelowUntilExact("(pavadinimas)").move(0, -1, 1)),
-	("PVM KODAS", findExact("Pirkėjas:").move(1, 0, 1).goBelowUntilExact("(PVM mokėtojo kodas)").move(0, -1, 1)),
+	("KODAS", findExact("Pirkėjas:").move(RIGHT).goBelowUntilExact("(pavadinimas)").move(UP)),
+	("PVM KODAS", findExact("Pirkėjas:").move(RIGHT).goBelowUntilExact("(PVM mokėtojo kodas)").move(UP)),
 	("KAINA BE PVM", findExact("Suma Eur").goBelowUntilLastContinuousValue().modify(remove_pvm)),
 ]
 
