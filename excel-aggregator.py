@@ -202,7 +202,7 @@ def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable
 
 	df = pd.DataFrame(all_data)
 	df.to_csv(output_file_csv, index=False)
-	print(f"Data aggregated and saved to {output_file_csv}")
+	return output_file_csv
 
 PMV_AMOUNT = 1.21
 
@@ -238,9 +238,13 @@ def main():
 	# excel_inputdir = input("Enter the folder path containing excel files: ")
 	excel_inputdir_name = os.path.basename(excel_inputdir)
 	csv_outdir = os.path.join(excel_inputdir, f"csv-{excel_inputdir_name}")
-	print("")
+
+	print(f"saving CSVs to '{csv_outdir}'")
 	excel_to_csv(excel_inputdir, csv_outdir)
-	aggregate_csv_data(csv_outdir, parse_columns)
+
+	print(f"aggregating data...")
+	output_file_csv = aggregate_csv_data(csv_outdir, parse_columns)
+	print(f"data aggregated to: {output_file_csv}")
 
 if __name__ == "__main__":
 	main()
