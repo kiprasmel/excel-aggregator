@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-import math
+from math import inf
 from pathlib import Path
 import pandas as pd
 import csv
@@ -21,10 +21,10 @@ class Location:
 	suffix: str = ""
 
 	def goRight(self):
-		return self._move(1, 0)
+		return self._moveUntilValue(1, 0)
 
 	def goBelow(self):
-		return self._move(0, 1)
+		return self._moveUntilValue(0, 1)
 
 	def goRightUntilExact(self, target):
 		return self._moveUntil(1, 0, lambda val: val == target)
@@ -44,8 +44,20 @@ class Location:
 	def goBelowUntilLastContinuousValue(self):
 		return self._moveUntilLastContinuousValue(0, 1)
 
+	def move(self, dx: int, dy: int, moves: int):
+		new_x, new_y = self.x, self.y
+		while moves > 0:
+			moves -= 1
+			new_x += dx
+			new_y += dy
+			if not self._within_bounds(new_x, new_y):
+				return None
+
+		value = self._get_cell_value(new_x, new_y)
+		return Location(new_x, new_y, value, self.sheet)
+
 	# move until a value is reached, while within bounds
-	def _move(self, dx, dy, moves=math.inf):
+	def _moveUntilValue(self, dx, dy, moves=inf):
 		new_x, new_y = self.x, self.y
 		while moves > 0:
 			moves -= 1
@@ -63,7 +75,7 @@ class Location:
 	def _moveUntil(self, dx, dy, condition):
 		current = self
 		while True:
-			current = current._move(dx, dy)
+			current = current._moveUntilValue(dx, dy)
 			if not current:
 				return None
 			if condition(current.value):
@@ -72,7 +84,7 @@ class Location:
 	def _moveUntilLastContinuousValue(self, dx, dy):
 		current = self
 		while True:
-			nxt = current._move(dx, dy, moves=1)
+			nxt = current.move(dx, dy, 1)
 			if not nxt:
 				return current
 			if nxt.value == "":
@@ -92,6 +104,9 @@ class Location:
 class Finder:
 	def __init__(self, find_func):
 		self.find_func = find_func
+
+	def move(self, dx, dy, moves):
+		return self._chain(lambda loc: loc.move(dx, dy, moves))
 
 	def goRight(self):
 		return self._chain(lambda loc: loc.goRight())
@@ -201,6 +216,8 @@ parse_columns_data2 = [
 	("SERIJA", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[1])),
 	("NR", findPrefix("Serija ").modify(lambda x: x.strip().split(" ")[-1])),
 	("DATA", findPrefix("Serija ").goBelow().modify(lambda x: x.strip())),
+	("KODAS", findExact("Pirkėjas:").move(1, 0, 1).goBelowUntilExact("(pavadinimas)").move(0, -1, 1)),
+	("PVM KODAS", findExact("Pirkėjas:").move(1, 0, 1).goBelowUntilExact("(PVM mokėtojo kodas)").move(0, -1, 1)),
 	("KAINA BE PVM", findExact("Suma Eur").goBelowUntilLastContinuousValue().modify(remove_pvm)),
 ]
 
