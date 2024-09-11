@@ -191,7 +191,7 @@ def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable
 	all_data = []
 	folder_name = os.path.basename(os.path.normpath(folder_path))
 	timestamp = datetime.now().strftime("%Y-%m-%d__%H-%M-%S")
-	outdir = "out"
+	outdir = "aggregated"
 	Path(outdir).mkdir(parents=True, exist_ok=True)
 	_output_file = os.path.join(outdir, f"{excel_inputdir}--{timestamp}")
 	output_file_csv = _output_file + ".csv"
