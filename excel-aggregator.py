@@ -30,7 +30,7 @@ class Location:
 		return self._moveUntil(1, 0, lambda val: val == target)
 
 	def goRightUntilPrefix(self, prefix):
-		return self._moveUntil(1, 0, lambda val: str(val).startswith(prefix))
+		return self._moveUntil(1, 0, lambda val: str(val).startswith(prefix), self._add_prefix_suffix(prefix))
 
 	def goRightUntilLastContinuousValue(self):
 		return self._moveUntilLastContinuousValue(1, 0)
@@ -39,7 +39,7 @@ class Location:
 		return self._moveUntil(0, 1, lambda val: val == target)
 
 	def goBelowUntilPrefix(self, prefix):
-		return self._moveUntil(0, 1, lambda val: str(val).startswith(prefix))
+		return self._moveUntil(0, 1, lambda val: str(val).startswith(prefix), self._add_prefix_suffix(prefix))
 
 	def goBelowUntilLastContinuousValue(self):
 		return self._moveUntilLastContinuousValue(0, 1)
@@ -72,14 +72,14 @@ class Location:
 		
 		return None
 
-	def _moveUntil(self, dx, dy, condition):
+	def _moveUntil(self, dx, dy, condition, modifier=lambda x: x):
 		current = self
 		while True:
 			current = current._moveUntilValue(dx, dy)
 			if not current:
 				return None
 			if condition(current.value):
-				return current
+				return modifier(current)
 
 	def _moveUntilLastContinuousValue(self, dx, dy):
 		current = self
@@ -100,6 +100,14 @@ class Location:
 		if 0 <= y < len(self.sheet) and 0 <= x < len(self.sheet[y]):
 			return True
 		return False
+
+	def _add_prefix_suffix(self, prefix):
+		def wrap(loc: Location):
+			loc.prefix = prefix
+			loc.suffix = get_suffix(loc.value, prefix)
+			return loc
+
+		return wrap
 
 # move deltas
 # POS = (dx, dy)
@@ -171,10 +179,13 @@ def findPrefix(prefix: str):
 		for y, row in enumerate(sheet):
 			for x, cell in enumerate(row):
 				if isinstance(cell, str) and cell.startswith(prefix):
-					suffix = cell[len(prefix):]
+					suffix = get_suffix(cell, prefix)
 					return Location(x, y, cell, sheet, prefix=prefix, suffix=suffix)
 		return None
 	return Finder(finder)
+
+def get_suffix(str: str, prefix: str) -> str:
+	return str[len(prefix):]
 
 def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable]]):
 	all_data = []
