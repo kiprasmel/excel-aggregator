@@ -190,10 +190,12 @@ def get_suffix(str: str, prefix: str) -> str:
 def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable]]):
 	all_data = []
 	folder_name = os.path.basename(os.path.normpath(folder_path))
-	timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+	timestamp = datetime.now().strftime("%Y-%m-%d__%H-%M-%S")
 	outdir = "out"
 	Path(outdir).mkdir(parents=True, exist_ok=True)
-	output_file_csv = os.path.join(outdir, f"aggregated-{folder_name}-{timestamp}.csv")
+	_output_file = os.path.join(outdir, f"{excel_inputdir}--{timestamp}")
+	output_file_csv = _output_file + ".csv"
+	output_file_excel = _output_file + ".xlsx"
 
 	for filename in os.listdir(folder_path):
 		if filename.endswith('.csv'):
@@ -213,7 +215,8 @@ def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable
 
 	df = pd.DataFrame(all_data)
 	df.to_csv(output_file_csv, index=False)
-	return output_file_csv
+	df.to_excel(output_file_excel, index=False)
+	return [output_file_csv, output_file_excel]
 
 PMV_AMOUNT = 1.21
 
@@ -255,8 +258,9 @@ def main():
 	excel_to_csv(excel_inputdir, csv_outdir)
 
 	print(f"aggregating data...")
-	output_file_csv = aggregate_csv_data(csv_outdir, parse_columns)
-	print(f"data aggregated to: {output_file_csv}")
+	outfiles = aggregate_csv_data(csv_outdir, parse_columns)
+	print("\ndata aggregated to:")
+	print("\n".join(outfiles))
 
 if __name__ == "__main__":
 	main()
