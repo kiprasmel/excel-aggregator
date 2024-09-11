@@ -206,10 +206,12 @@ def aggregate_csv_data(folder_path: str, parse_columns: List[Tuple[str, Callable
 				sheet = list(reader)
 
 			row_data = {'Filename': filename}
-			for column_name, value_fn in parse_columns:
-				location = value_fn(sheet)
-				if location:
-					row_data[column_name] = location.value
+			for column_name, *value_fns in parse_columns:
+				for value_fn in value_fns:
+					location = value_fn(sheet)
+					if location:
+						row_data[column_name] = location.value
+						break
 
 			all_data.append(row_data)
 
