@@ -223,12 +223,13 @@ def remove_pvm(value):
 	return rounded
 
 parse_columns_data1 = [
-	("SF NUMERIS", findPrefix("PVM SĄSKAITA FAKTŪRA (VAT INVOICE)").modify(lambda x: x.split(" ")[-1])),
-	("DATA", findPrefix("Išrašymo data / Date:").getSuffix()),
-	("KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("Įmones kodas:").getSuffix()),
-	("PVM KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("PVM kodas:").getSuffix()),
+	("SF NUMERIS", findPrefix("PVM SĄSKAITA FAKTŪRA (VAT INVOICE) ").getSuffix()),
+	("DATA", findPrefix("Išrašymo data / Date: ").getSuffix()),
+	("KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("įmonės kodas ").getSuffix()),
+	("PVM KODAS", findPrefix("Pirkėjas / Buyer").goBelowUntilPrefix("PVM mokėtojo kodas ").getSuffix()),
 	("VARDAS PAVARDĖ/ĮM. PAVADINIMAS", findExact("Pirkėjas / Buyer").goBelowUntilValue()),
 	("KAINA BE PVM", findExact("Bendros sumos EUR").goBelowUntilExact("Suma be PVM / total amount:").goRightUntilValue()),
+	("PIRMOS PREKES PAVADINIMAS", findExact("Prekės (paslaugos) pavadinimas / Description").move(DOWN, 1)),
 ]
 
 parse_columns_data2 = [
@@ -242,8 +243,8 @@ parse_columns_data2 = [
 ]
 
 # select which parser to use
-parse_columns = parse_columns_data2
-excel_inputdir = "NS24 2024 08"
+parse_columns = parse_columns_data1
+excel_inputdir = "modul"
 
 def main():
 	# excel_inputdir = input("Enter the folder path containing excel files: ")
